@@ -34,6 +34,7 @@
         public string TenantName { get; set; } = string.Empty;
         public string ProofNumber { get; set; } = string.Empty;
         public string RentType { get; set; } = string.Empty;
+        public decimal StartingCurrent { get; set; }
         public string? ShopName { get; set; }
     }
 

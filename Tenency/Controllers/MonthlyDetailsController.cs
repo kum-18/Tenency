@@ -16,7 +16,7 @@ namespace Tenency.Controllers
         {
             TenancyDbContext = dbcontext;
         }
-        [HttpPost("monthlydetails}")]
+        [HttpPost("monthlydetails")]
         public async Task<IActionResult> SaveMonthlyDetails([FromQuery]string tenantId, [FromQuery]decimal newReading)
         {
             bool isValid = Guid.TryParse(tenantId, out Guid validTenantId);

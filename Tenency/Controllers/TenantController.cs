@@ -114,6 +114,7 @@ namespace Tenency.Controllers
                 PropertyId = validPropertyId,
                 TenantName = payload.TenantName,
                 ProofNumber = payload.ProofNumber,
+                StartingCurrent = payload.StartingCurrent,
                 RentType = payload.RentType.ToLower(),
                 ShopName = payload.ShopName,
                 RentStartDate = DateOnly.FromDateTime(DateTime.Today),
