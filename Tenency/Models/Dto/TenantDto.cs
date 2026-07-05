@@ -7,8 +7,9 @@
         public string RentType { get; set; } = string.Empty;
         public string? ShopName { get; set; }
         public string PropertyName { get; set; } = string.Empty;
-        public DateTime StartDate { get; set; }
-        public DateTime? EndDate { get; set; }
+        public DateOnly MoveInDate { get; set; }
+        public DateOnly RentStartDate { get; set; }
+        public DateOnly? EndDate { get; set; }
         public bool IsActive { get; set; }
     }
 
@@ -21,8 +22,9 @@
         public string? ShopName { get; set; }
         public string PropertyName { get; set; } = string.Empty;
         public Guid PropertyId { get; set; }
-        public DateTime StartDate { get; set; }
-        public DateTime? EndDate { get; set; }
+        public DateOnly MoveInDate { get; set; }
+        public DateOnly RentStartDate { get; set; }
+        public DateOnly? EndDate { get; set; }
         public bool IsActive { get; set; }
     }
 
@@ -33,7 +35,6 @@
         public string ProofNumber { get; set; } = string.Empty;
         public string RentType { get; set; } = string.Empty;
         public string? ShopName { get; set; }
-        public DateTime StartDate { get; set; }
     }
 
     public class UpdateTenantPayload
@@ -41,6 +42,7 @@
         public string? TenantName { get; set; }
         public string? ShopName { get; set; }
         public string? ProofNumber { get; set; }
-        public DateTime? EndDate { get; set; }
+        public string? RentStartDate { get; set; }
+        public DateOnly? EndDate { get; set; }
     }
 }

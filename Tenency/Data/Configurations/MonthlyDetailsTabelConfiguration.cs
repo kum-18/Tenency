@@ -20,6 +20,7 @@ namespace Tenency.Data.Configurations
             builder.Property(m => m.CurrentReadingTo).HasColumnName("current_reading_to").HasColumnType("numeric(12, 2)").IsRequired();
             builder.Property(m => m.CurrentUsed).HasColumnName("current_used").HasColumnType("numeric(12, 2)").IsRequired();
             builder.Property(m => m.TotalMonthlyRent).HasColumnName("total_montly_rent").HasColumnType("numeric(12, 2)").IsRequired();
+            builder.Property(m => m.ElectricityCharges).HasColumnName("electricity_charges").HasColumnType("numeric(12, 2)").IsRequired();
             builder.Property(m => m.AmountPaid).HasColumnName("amount_paid").HasColumnType("numeric(12, 2)").IsRequired();
             builder.Property(m => m.Due).HasColumnName("due").HasColumnType("numeric(12, 2)").IsRequired();
             builder.Property(m => m.CreatedAt).HasColumnName("created_at").HasColumnType("timestamp").IsRequired();

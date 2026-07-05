@@ -24,8 +24,8 @@ namespace Tenency.Controllers
             {
                 return BadRequest("Invalid tenantId");
             }
-            var Tenant = await TenancyDbContext.Tenants.Include(t=>t.Property).FirstOrDefaultAsync((tent)=>tent.Guid==validTenantId);
-            if(Tenant == null)
+            var tenant = await TenancyDbContext.Tenants.Include(t=>t.Property).FirstOrDefaultAsync((tent)=>tent.Guid==validTenantId);
+            if(tenant == null)
             {
                 return BadRequest("Not a valid Tenant");
             }
@@ -37,40 +37,72 @@ namespace Tenency.Controllers
 
             var todayDateOnly = DateOnly.FromDateTime(DateTime.Today);
             var billingMonth = new DateOnly(todayDateOnly.Year, todayDateOnly.Month, 1);
-            var existingBill = await TenancyDbContext.MonthlyDetails.AnyAsync(m => m.TenantId == validTenantId && m.BillingMonth == billingMonth);
+
+            // Duplicate bill guard
+            var existingBill = await TenancyDbContext.MonthlyDetails
+                .AnyAsync(m => m.TenantId == validTenantId && m.BillingMonth == billingMonth);
             if (existingBill)
-            {
                 return Conflict("Bill already generated for this month");
-            }
+
             var lastMonthDetails = await TenancyDbContext.MonthlyDetails
                 .AsNoTracking()
                 .Where(m => m.TenantId == validTenantId && m.BillingMonth < billingMonth)
                 .OrderByDescending(m => m.BillingMonth)
                 .FirstOrDefaultAsync();
-            decimal currentUsed = lastMonthDetails == null ? newReading - 0 : newReading - lastMonthDetails.CurrentReadingTo;
-            MonthlyDetails monthlyDetails = new MonthlyDetails
+
+            bool isFirstBill = lastMonthDetails == null;
+
+            // Reading baseline
+            decimal readingFrom = isFirstBill
+                ? tenant.StartingCurrent
+                : lastMonthDetails!.CurrentReadingTo;
+            decimal currentUsed = newReading - readingFrom;
+            decimal baseRent;
+            if (isFirstBill && tenant.MoveInDate.Day != 1)
             {
-                TenantId = Tenant.Guid,
-                PropertyId = Tenant.PropertyId,
+                int daysInMonth = DateTime.DaysInMonth(billingMonth.Year, billingMonth.Month);
+                int daysOccupied = daysInMonth - tenant.MoveInDate.Day + 1;
+                baseRent = Math.Round(tenant.Property.BaseRent / daysInMonth * daysOccupied, 2);
+
+                // Lock in rent_start_date as this billing month's 1st
+                var trackedTenant = await TenancyDbContext.Tenants.FindAsync(validTenantId);
+                trackedTenant!.RentStartDate = billingMonth;
+                trackedTenant.UpdatedAt = DateTime.Now;
+            }
+            else
+            {
+                baseRent = tenant.Property.BaseRent; // full fixed rent every month
+            }
+
+            decimal electricityCharge = currentUsed * tenant.Property.BaseCurrentPrice;
+            decimal previousDue = lastMonthDetails?.Due ?? 0;
+            decimal totalMonthlyRent = baseRent + electricityCharge + previousDue;
+
+            var monthlyDetails = new MonthlyDetails
+            {
+                TenantId = tenant.Guid,
+                PropertyId = tenant.PropertyId,
                 BillingMonth = billingMonth,
-                CurrentUsed = currentUsed,
-                TotalMonthlyRent = currentUsed * Tenant.Property.BaseCurrentPrice + Tenant.Property.BaseRent + (lastMonthDetails?.Due ?? 0),
-                CurrentReadingFrom = lastMonthDetails == null ? 0 : lastMonthDetails.CurrentReadingTo,
+                CurrentReadingFrom = readingFrom,
                 CurrentReadingTo = newReading,
-                Due = currentUsed * Tenant.Property.BaseCurrentPrice + Tenant.Property.BaseRent + (lastMonthDetails?.Due ?? 0),
+                CurrentUsed = currentUsed,
+                ElectricityCharges = electricityCharge,
+                TotalMonthlyRent = totalMonthlyRent,
+                Due = totalMonthlyRent,   // starts as full amount; cleared when tenant pays
                 CreatedAt = DateTime.Now
             };
+
             await TenancyDbContext.MonthlyDetails.AddAsync(monthlyDetails);
+
             try
             {
                 await TenancyDbContext.SaveChangesAsync();
+                return StatusCode(StatusCodes.Status201Created, "Monthly details saved successfully");
             }
-            catch(DBConcurrencyException)
+            catch (Exception ex)
             {
-                return StatusCode(StatusCodes.Status500InternalServerError, "Error updating user details. The Email or Phone Number may already be in use.");
+                return StatusCode(StatusCodes.Status500InternalServerError, "Failed to save monthly details");
             }
-             
-            return StatusCode(StatusCodes.Status201Created, "Successfully created");
         }
 
         [HttpPatch("updateDue")]
@@ -157,7 +189,7 @@ namespace Tenency.Controllers
             {
                 return BadRequest("Invalid tenantId");
             }
-            var Tenant = await TenancyDbContext.Tenants.FirstOrDefaultAsync((tent) => tent.Guid == validTenantId);
+            var Tenant = await TenancyDbContext.Tenants.Where((tent) => tent.Guid == validTenantId).Include(t=>t.Property).FirstOrDefaultAsync();
             if (Tenant == null)
             {
                 return NotFound("Not a valid Tenant");
@@ -170,11 +202,14 @@ namespace Tenency.Controllers
                 CurrentReadingFrom = monDet.CurrentReadingFrom,
                 CurrentReadingTo = monDet.CurrentReadingTo,
                 Due = monDet.Due,
+                ElectricityCharges = monDet.ElectricityCharges,
+                BaseRent = Tenant.Property.BaseRent,
+                BaseCurrentCharges = Tenant.Property.BaseCurrentPrice,
                 CurrentUsed = monDet.CurrentUsed,
                 PropertyName = monDet.Property.PropertyName,
                 TotalMonthlyRent = monDet.TotalMonthlyRent,
                 CreatedAt = monDet.CreatedAt,
-                UpdatedAt = monDet.UpdatedAt
+                UpdatedAt = monDet.UpdatedAt ?? null
             }).AsNoTracking().FirstOrDefaultAsync();
             if(MonthlyDetails == null)
             {

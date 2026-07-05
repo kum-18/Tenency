@@ -16,9 +16,11 @@ namespace Tenency.Data.Configurations
             builder.Property(t => t.ProofNumber).HasColumnName("proof_number").HasMaxLength(100).IsRequired();
             builder.Property(t => t.RentType).HasColumnName("rent_type").HasMaxLength(50).IsRequired();
             builder.Property(t => t.ShopName).HasColumnName("shop_name").HasMaxLength(300);
-
-            builder.Property(t => t.StartDate).HasColumnName("start_date").HasColumnType("timestamp").IsRequired();
-            builder.Property(t => t.EndDate).HasColumnName("end_date").HasColumnType("timestamp");
+            builder.Property(t => t.StartingCurrent).HasColumnName("current_reading_from").HasColumnType("numeric(12, 2)").IsRequired();
+            builder.Property(t => t.MoveInDate).HasColumnName("move_in_date").HasColumnType("date").IsRequired();
+            builder.Property(t => t.RentStartDate).HasColumnName("rent_start_date").HasColumnType("date").IsRequired();
+            builder.Property(t => t.IsActive).HasColumnName("is_active").HasColumnType("date").IsRequired();
+            builder.Property(t => t.EndDate).HasColumnName("end_date").HasColumnType("date");
             builder.Property(m => m.CreatedAt).HasColumnName("created_at").HasColumnType("timestamp").IsRequired();
             builder.Property(m => m.UpdatedAt).HasColumnName("updatede_at").HasColumnType("timestamp");
 

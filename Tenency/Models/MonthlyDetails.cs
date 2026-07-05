@@ -9,7 +9,7 @@ namespace Tenency.Models
         public Guid PropertyId { get; set; }
         public DateOnly BillingMonth { get; set; }
         public decimal CurrentUsed { get; set; }
-
+        public decimal ElectricityCharges { get; set; }
         public decimal CurrentReadingFrom { get; set; }
         public decimal CurrentReadingTo { get; set; }
         public decimal TotalMonthlyRent { get; set; }

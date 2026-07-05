@@ -19,9 +19,9 @@ namespace Tenency.Controllers
 
         // GET api/tenant?propertyId={propertyId}
         // GET api/tenant (all tenants across all properties)
-        [HttpGet]
+        [HttpGet()]
         public async Task<ActionResult<IEnumerable<TenantSummaryDto>>> GetAll(
-            [FromQuery] string? propertyId)
+            [FromQuery] string? propertyId, [FromQuery] bool? includeInActiveUser)
         {
             var query = _db.Tenants.AsQueryable();
 
@@ -33,6 +33,9 @@ namespace Tenency.Controllers
                 query = query.Where(t => t.PropertyId == validPropertyId);
             }
 
+            if (includeInActiveUser != true)
+                query = query.Where(t => t.IsActive);
+
             var tenants = await query
                 .Select(t => new TenantSummaryDto
                 {
@@ -41,7 +44,7 @@ namespace Tenency.Controllers
                     RentType = t.RentType,
                     ShopName = t.ShopName,
                     PropertyName = t.Property.PropertyName,
-                    StartDate = t.StartDate,
+                    MoveInDate = t.MoveInDate,
                     EndDate = t.EndDate,
                     IsActive = t.EndDate == null
                 })
@@ -69,7 +72,8 @@ namespace Tenency.Controllers
                     ShopName = t.ShopName,
                     PropertyName = t.Property.PropertyName,
                     PropertyId = t.PropertyId,
-                    StartDate = t.StartDate,
+                    MoveInDate = t.MoveInDate,
+                    RentStartDate = t.RentStartDate,
                     EndDate = t.EndDate,
                     IsActive = t.EndDate == null
                 })
@@ -112,7 +116,8 @@ namespace Tenency.Controllers
                 ProofNumber = payload.ProofNumber,
                 RentType = payload.RentType.ToLower(),
                 ShopName = payload.ShopName,
-                StartDate = payload.StartDate,
+                RentStartDate = DateOnly.FromDateTime(DateTime.Today),
+                IsActive = true,
                 CreatedAt = DateTime.Now
             };
 
@@ -145,12 +150,12 @@ namespace Tenency.Controllers
             // Vacating the tenant
             if (payload.EndDate.HasValue)
             {
-                if (payload.EndDate < tenant.StartDate)
+                if (payload.EndDate < tenant.MoveInDate)
                     return BadRequest("End date cannot be before start date");
 
                 tenant.EndDate = payload.EndDate;
             }
-            tenant.UpdatedAt = DateTime.Now
+            tenant.UpdatedAt = DateTime.Now;
             await _db.SaveChangesAsync();
             return Ok("Tenant updated successfully");
         }
@@ -170,8 +175,8 @@ namespace Tenency.Controllers
             if (tenant.EndDate != null)
                 return Conflict("Tenant has already vacated");
 
-            tenant.EndDate = DateTime.Now;
-
+            tenant.EndDate = DateOnly.FromDateTime(DateTime.Today);
+            tenant.IsActive = false;
             await _db.SaveChangesAsync();
             return Ok("Tenant marked as vacated");
         }
