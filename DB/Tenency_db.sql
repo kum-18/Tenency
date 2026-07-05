@@ -39,7 +39,7 @@ amount_paid numeric(12,2) not null,
 due numeric(12,2) not null,
 created_at timestamp not null,
 updated_at timestamp
-)
+);
 create table expense(
 guid uuid primary key default gen_random_uuid(),
 property_id uuid references property(guid) not null,
